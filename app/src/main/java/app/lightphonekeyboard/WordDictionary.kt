@@ -259,10 +259,12 @@ class WordDictionary(
         return false
     }
 
-    /** A *direct* dictionary/learned entry — the only thing we may autocorrect *to*. Unlike [isWord] this
-     *  deliberately excludes Hebrew proclitic+stem reconstructions, so corrections never invent a glued
-     *  surface form (e.g. ש/ו + a common stem) that isn't itself a real listed word. */
-    private fun isDictWord(w: String): Boolean = freq.containsKey(w) || learned.containsKey(w)
+    /** A *base-dictionary* entry — the only thing we may autocorrect *to*. Deliberately excludes both
+     *  Hebrew proclitic+stem reconstructions (so corrections never invent a glued surface form) and your
+     *  *learned* words: a learned word is still left alone (see [isWord]), but must never be a correction
+     *  target — otherwise a typo that slipped into "my words" (with its large learned weight) could hijack
+     *  corrections, pulling real words toward it. Corrections only ever land on a real listed word. */
+    private fun isDictWord(w: String): Boolean = freq.containsKey(w)
 
     /** Raw count of a known word/stem (no proclitic handling). */
     private fun rawFreq(w: String): Long = freq[w] ?: learned[w]?.let { it * LEARN_WEIGHT } ?: 0L

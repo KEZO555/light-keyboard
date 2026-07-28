@@ -224,6 +224,7 @@ class CorrectionCorpusTest {
         assertEquals("which", english.correct("wich"))     // edit-distance alone picks "wish"
         assertEquals("a lot", english.correct("alot"))      // a split it wouldn't otherwise make
         assertEquals("מאמין", hebrew.correct("מאציו"))       // two adjacent-key slips — no edit-1 fix exists
+        assertEquals("סגור", hebrew.correct("סגטק"))         // ט→ו and ק→ר, both adjacent — also two slips
     }
 
     @Test fun contextCorrectsAValidWordFromTheRealModel() {
