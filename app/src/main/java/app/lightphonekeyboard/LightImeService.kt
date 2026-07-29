@@ -468,7 +468,7 @@ class LightImeService : InputMethodService(), LightKeyboardView.Listener {
         if (!micActive) return
         if (!sysDictation.available) {
             micActive = false
-            kb.setListeningStatus("Voice unavailable")
+            kb.setListeningStatus(getString(R.string.voice_unavailable))
             kb.postDelayed({ kb.stopListeningUi() }, 1200)
             return
         }
@@ -510,11 +510,11 @@ class LightImeService : InputMethodService(), LightKeyboardView.Listener {
         dictation.prepare(code)
         if (attempts > 40) {   // ~12s; first-run model load should be done well before this
             micActive = false
-            kb.setListeningStatus("Voice unavailable")
+            kb.setListeningStatus(getString(R.string.voice_unavailable))
             kb.postDelayed({ kb.stopListeningUi() }, 1200)
             return
         }
-        kb.setListeningStatus("Preparing voice…")
+        kb.setListeningStatus(getString(R.string.voice_preparing))
         kb.postDelayed({ startDictationWhenReady(kb, code, attempts + 1) }, 300)
     }
 

@@ -9,7 +9,7 @@ abstract class SettingsScreen : AppCompatActivity() {
     /** A boolean setting as "label / On|Off". */
     protected fun toggleItem(c: LinearLayout, labelRes: Int, subRes: Int, get: () -> Boolean, set: (Boolean) -> Unit) {
         LightUi.valueItem(c, getString(labelRes), getString(subRes),
-            value = { if (get()) "On" else "Off" }, onClick = { set(!get()) })
+            value = { getString(if (get()) R.string.on else R.string.off) }, onClick = { set(!get()) })
     }
 
     /** A multi-step setting as "label / <current name>", cycling on tap. */

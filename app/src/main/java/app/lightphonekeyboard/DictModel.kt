@@ -62,14 +62,14 @@ object DictModel {
         onError: (String) -> Unit,
     ) {
         val url = def.dictUrl
-        if (url == null) { onError("no dictionary"); return }
+        if (url == null) { onError(context.getString(R.string.error_no_dict)); return }
         val letters = def.autocorrectAlphabet.toHashSet()
         val app = context.applicationContext
         Thread {
             val tmp = File(app.cacheDir, "${def.code}_words.dl")
             val out = dictFile(app, def.code)
             try {
-                downloadFiltered(url, tmp, letters, capFor(def)) { p -> main.post { onProgress(p) } }
+                downloadFiltered(url, tmp, letters, capFor(def), context) { p -> main.post { onProgress(p) } }
                 out.delete()
                 if (!tmp.renameTo(out)) { tmp.copyTo(out, overwrite = true); tmp.delete() }
                 stampVersion(app, def.code)
@@ -79,7 +79,7 @@ object DictModel {
             } catch (e: Exception) {
                 Log.e(TAG, "dictionary install failed", e)
                 tmp.delete()
-                main.post { onError(e.message ?: "download failed") }
+                main.post { onError(e.message ?: context.getString(R.string.error_download_failed)) }
             }
         }.start()
     }
@@ -100,7 +100,7 @@ object DictModel {
         Thread {
             val tmp = File(app.cacheDir, "${code}_words.new")
             try {
-                downloadFiltered(url, tmp, letters, capFor(def)) {}
+                downloadFiltered(url, tmp, letters, capFor(def), context) {}
                 val out = dictFile(app, code)
                 out.delete()
                 if (!tmp.renameTo(out)) { tmp.copyTo(out, overwrite = true); tmp.delete() }
@@ -131,7 +131,7 @@ object DictModel {
         Thread {
             val tmp = File(app.cacheDir, "${code}_words.upd")
             try {
-                downloadFiltered(url, tmp, letters, capFor(def)) {}
+                downloadFiltered(url, tmp, letters, capFor(def), context) {}
                 val out = dictFile(app, code)
                 out.delete()
                 if (!tmp.renameTo(out)) { tmp.copyTo(out, overwrite = true); tmp.delete() }
@@ -176,7 +176,7 @@ object DictModel {
 
     /** Stream [url] line by line, keeping "<word> <count>" rows whose word is made only of [letters]
      *  (lowercased) and is [MIN_LEN]..[MAX_LEN] long, up to [maxWords]. Progress is reported by bytes. */
-    private fun downloadFiltered(url: String, dest: File, letters: Set<Char>, maxWords: Int, onProgress: (Int) -> Unit) {
+    private fun downloadFiltered(url: String, dest: File, letters: Set<Char>, maxWords: Int, context: Context, onProgress: (Int) -> Unit) {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 20_000; readTimeout = 60_000; instanceFollowRedirects = true
         }
@@ -211,7 +211,7 @@ object DictModel {
                     }
                 }
             }
-            if (kept == 0) throw RuntimeException("empty dictionary")
+            if (kept == 0) throw RuntimeException(context.getString(R.string.error_empty_dict))
         } finally {
             conn.disconnect()
         }

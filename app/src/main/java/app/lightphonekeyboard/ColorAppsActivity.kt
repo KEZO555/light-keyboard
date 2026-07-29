@@ -19,7 +19,7 @@ class ColorAppsActivity : AppCompatActivity() {
                 LightUi.valueItem(
                     content,
                     label = label,
-                    value = { if (pkg in chosen) "On" else "Off" },
+                    value = { getString(if (pkg in chosen) R.string.on else R.string.off) },
                     onClick = {
                         if (pkg in chosen) chosen.remove(pkg) else chosen.add(pkg)
                         Prefs.setColorApps(this, chosen)

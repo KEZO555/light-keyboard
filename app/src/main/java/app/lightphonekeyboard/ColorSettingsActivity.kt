@@ -20,12 +20,12 @@ class ColorSettingsActivity : SettingsScreen() {
         Prefs.COLOR_KEYMAP_NONE, Prefs.COLOR_KEYMAP_WHEEL_LONG,
         Prefs.COLOR_KEYMAP_VOLUME_CHORD, Prefs.COLOR_KEYMAP_CAMERA,
     )
-    private val keymapNames = listOf("Off", "Long-press wheel", "Volume up + down", "Long-press camera")
+    private val keymapNames = listOf(R.string.off, R.string.keymap_wheel, R.string.keymap_volume, R.string.keymap_camera)
 
     /** A key-shortcut action bound to one of [keymapValues], cycling through them on tap. */
-    private fun keymapItem(c: LinearLayout, label: String, subRes: Int, get: () -> Int, set: (Int) -> Unit) {
-        LightUi.valueItem(c, label, getString(subRes),
-            value = { keymapNames[keymapValues.indexOf(get()).coerceAtLeast(0)] },
+    private fun keymapItem(c: LinearLayout, labelRes: Int, subRes: Int, get: () -> Int, set: (Int) -> Unit) {
+        LightUi.valueItem(c, getString(labelRes), getString(subRes),
+            value = { getString(keymapNames[keymapValues.indexOf(get()).coerceAtLeast(0)]) },
             onClick = { set(keymapValues[(keymapValues.indexOf(get()).coerceAtLeast(0) + 1) % keymapValues.size]) })
     }
 
@@ -43,11 +43,11 @@ class ColorSettingsActivity : SettingsScreen() {
             LightUi.navItem(c, getString(R.string.setup_color_apps), getString(R.string.setup_color_apps_sub)) {
                 startActivity(Intent(this, ColorAppsActivity::class.java))
             }
-            keymapItem(c, "Colour toggle", R.string.setup_color_keymap_sub,
+            keymapItem(c, R.string.color_toggle, R.string.setup_color_keymap_sub,
                 { Prefs.colorKeymap(this) }, { Prefs.setColorKeymap(this, it) })
-            keymapItem(c, "Recent apps", R.string.setup_recents_keymap_sub,
+            keymapItem(c, R.string.recent_apps, R.string.setup_recents_keymap_sub,
                 { Prefs.recentsKeymap(this) }, { Prefs.setRecentsKeymap(this, it) })
-            keymapItem(c, "Go back", R.string.setup_back_keymap_sub,
+            keymapItem(c, R.string.go_back, R.string.setup_back_keymap_sub,
                 { Prefs.backKeymap(this) }, { Prefs.setBackKeymap(this, it) })
             toggleItem(c, R.string.setup_wheel_brightness, R.string.setup_wheel_brightness_sub,
                 { Prefs.wheelBrightness(this) },

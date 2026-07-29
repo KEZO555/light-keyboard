@@ -89,4 +89,49 @@
     <string name="color_toast_gray">Grayscale on</string>
     <string name="color_toast_color">Colour on until you leave this app</string>
     <string name="color_toast_no_permission">Missing WRITE_SECURE_SETTINGS — see Settings for the adb command</string>
+
+    <!-- Generic labels -->
+    <string name="on">On</string>
+    <string name="off">Off</string>
+    <string name="done">Done</string>
+
+    <!-- Cycle values -->
+    <string name="haptic_light">Light</string>
+    <string name="haptic_medium">Medium</string>
+    <string name="haptic_strong">Strong</string>
+    <string name="speed_slow">Slow</string>
+    <string name="speed_normal">Normal</string>
+    <string name="speed_fast">Fast</string>
+    <string name="level_low">Low</string>
+    <string name="level_high">High</string>
+    <string name="size_compact">Compact</string>
+    <string name="size_tall">Tall</string>
+
+    <!-- Keymap gestures -->
+    <string name="keymap_wheel">Long-press wheel</string>
+    <string name="keymap_volume">Volume up + down</string>
+    <string name="keymap_camera">Long-press camera</string>
+
+    <!-- Quick settings specific -->
+    <string name="haptic_feedback">Haptic feedback</string>
+    <string name="lp_delay">Long-press delay</string>
+    <string name="cursor_swipe">Cursor swipe</string>
+    <string name="kb_height">Keyboard height</string>
+    <string name="color_toggle">Colour toggle</string>
+    <string name="recent_apps">Recent apps</string>
+    <string name="go_back">Go back</string>
+    <string name="kb_size">Keyboard size</string>
+    <string name="lang_label">Language label</string>
+    <string name="all_settings">All settings  ›</string>
+
+    <!-- Dictation -->
+    <string name="listening">Listening…</string>
+    <string name="tap_done">Tap when done</string>
+    <string name="voice_unavailable">Voice unavailable</string>
+    <string name="voice_preparing">Preparing voice…</string>
+
+    <!-- Errors -->
+    <string name="error_no_dict">No dictionary</string>
+    <string name="error_download_failed">Download failed</string>
+    <string name="error_empty_dict">Empty dictionary</string>
 </resources>
