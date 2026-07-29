@@ -23,7 +23,7 @@ class LanguagesActivity : AppCompatActivity() {
                 LightUi.valueItem(
                     content,
                     label = l.name,
-                    value = { if (l.code in enabled) "On" else "Off" },
+                    value = { getString(if (l.code in enabled) R.string.on else R.string.off) },
                     onClick = {
                         val turningOn = l.code !in enabled
                         if (turningOn) enabled.add(l.code) else enabled.remove(l.code)

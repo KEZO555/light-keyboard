@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Type</string>
+    <string name="setup_title">Type</string>
+    <string name="setup_blurb">Een minimaal zwart-wit toetsenbord voor de Light Phone. Twee snelle stappen:</string>
+    <string name="setup_step1">1. Schakel Type in</string>
+    <string name="setup_step2">2. Kies het als je toetsenbord</string>
+    <string name="setup_enabled">✓ Ingeschakeld</string>
+    <string name="setup_done">Installatie voltooid. Het verschijnt in elk tekstveld. Veeg omlaag op het toetsenbord om het te sluiten.</string>
+    <string name="setup_autocorrect">Autocorrectie</string>
+    <string name="setup_autocorrect_sub">Herstel spelfouten terwijl je typt, met een woordenboek dat ook de woorden leert die je gebruikt. Werkt volledig offline. Engels is ingebouwd; voor elke andere taal wordt het woordenboek gedownload wanneer je het inschakelt bij Talen.</string>
+    <string name="back">‹ Terug</string>
+    <string name="setup_gesture">Glide-typen</string>
+    <string name="setup_gesture_sub">Typ een woord door je vinger over de letters te schuiven zonder deze op te tillen. Tik-typen werkt nog steeds precies hetzelfde als voorheen. Standaard uitgeschakeld.</string>
+    <string name="setup_suggestions">Suggestiebalk</string>
+    <string name="setup_suggestions_sub">Toon een balk met tikbare woordanvullingen boven de toetsen terwijl je typt. Standaard uit om het toetsenbord minimaal te houden.</string>
+    <string name="setup_languages">Talen</string>
+    <string name="setup_languages_sub">Kies door welke talen de wereldboltoets wisselt. Elke taal heeft zijn eigen lay-out en accenten bij lang indrukken. Alleen Engels bevat ingebouwde autocorrectie; voor elke andere taal wordt het woordenboek automatisch gedownload wanneer je het inschakelt (werkt daarna offline). Met spraak ingeschakeld kan elke taal (behalve Hebreeuws) ook een offline spraakmodel downloaden.</string>
+    <string name="dict_download">Offline autocorrectie downloaden (~0,6 MB)</string>
+    <string name="dict_downloading">Woordenboek downloaden… %1$d%%</string>
+    <string name="dict_installed">Offline autocorrectie gereed · tik om te verwijderen</string>
+    <string name="dict_failed">Download mislukt: %1$s · tik om opnieuw te proberen</string>
+    <string name="voice_download">Offline spraak downloaden (~%1$d MB)</string>
+    <string name="voice_downloading">Spraak downloaden… %1$d%%</string>
+    <string name="voice_installed">Offline spraak gereed · tik om te verwijderen</string>
+    <string name="voice_failed">Spraakdownload mislukt: %1$s · tik om opnieuw te proberen</string>
+    <string name="setup_number_row">Cijferrij</string>
+    <string name="setup_number_row_sub">Toon een rij cijfers boven de letters.</string>
+    <string name="setup_lang_indicator">Taal op spatiebalk</string>
+    <string name="setup_lang_indicator_sub">Wanneer er meer dan één taal is ingeschakeld, toon dan de code van de actieve taal (EN / NL / RU …) op de spatiebalk.</string>
+    <string name="setup_auto_cap">Automatisch hoofdlettergebruik</string>
+    <string name="setup_auto_cap_sub">Maak de eerste letter van elke zin een hoofdletter (Engels).</string>
+    <string name="setup_double_space">Dubbele spatie voor punt</string>
+    <string name="setup_double_space_sub">Tik twee keer op de spatiebalk om “. ” in te voegen.</string>
+    <string name="setup_haptic_sub">Trillingssterkte bij elke toetsaanslag. Tik om te wisselen.</string>
+    <string name="setup_sound">Toetsgeluid</string>
+    <string name="setup_sound_sub">Speel de systeemklik af bij elke toetsaanslag (volgt het volume van de geluidseffecten van je apparaat).</string>
+    <string name="setup_lp_delay_sub">Hoe lang je een toets ingedrukt moet houden voordat het symbool of de accenten verschijnen. Tik om te wisselen.</string>
+    <string name="setup_swipe_sub">Hoe ver je over de spatiebalk schuift om de cursor één stap te verplaatsen. Tik om te wisselen.</string>
+    <string name="setup_kb_height_sub">Totale hoogte van het toetsenbord. Tik om te wisselen.</string>
+    <string name="setup_tip">Tip: houd de wereldboltoets (⚙) op het toetsenbord ingedrukt voor een snelmenu met instellingen — haptiek, autocorrectie, automatisch hoofdlettergebruik, dubbele spatie en toetsenbordgrootte, zonder de app waarin je bent te verlaten.</string>
+    <string name="setup_emoji">Emoji</string>
+    <string name="setup_emoji_sub">Tik om te kiezen welke emoji verschijnen in het emoji-paneel van het toetsenbord. Gedimd = verborgen.</string>
+    <string name="setup_vocab">Mijn woorden</string>
+    <string name="setup_vocab_sub">Woorden die het toetsenbord heeft geleerd terwijl je typte. Tik op een woord om het te vergeten.</string>
+    <string name="vocab_empty">Nog geen opgeslagen woorden. Terwijl je nieuwe woorden typt, worden ze hier toegevoegd.</string>
+    <string name="vocab_clear">Wis alle woorden</string>
+    <string name="vocab_truncated">+ nog %1$d</string>
+    <string name="setup_voice">Spraakdictaat</string>
+    <string name="setup_voice_sub">Privé-dictaat op het apparaat. Download het offline model van elke taal in Instellingen → Talen. (Hebreeuws heeft geen offline model — het gebruikt de eigen spraakdienst van de telefoon, als deze die heeft.)</string>
+
+    <string name="subtype_en">Engels</string>
+    <string name="subtype_he">Hebreeuws</string>
+
+    <string name="section_typing">Typen</string>
+    <string name="section_typing_sub">Autocorrectie, suggesties, glide-typen, mijn woorden, spraakdictaat.</string>
+    <string name="section_keys">Toetsen &amp; gevoel</string>
+    <string name="section_keys_sub">Haptiek, geluid, toetstiming, cursor-swipe, toetsenbordgrootte.</string>
+    <string name="section_color">Toetssnelkoppelingen &amp; meer</string>
+    <string name="section_color_sub">Kleur-apps, hardware-keymaps, wielhelderheid en sluiten bij vergrendeling.</string>
+    <string name="setup_languages_menu_sub">Kies je talen en download hun woordenboeken en spraakmodellen.</string>
+
+    <string name="setup_color_blurb">Kleurfilter: de telefoon blijft in grijstinten; de onderstaande opties pauzeren dit per app. Vereist de kleurservice.</string>
+    <string name="setup_color_permission">Eenmalige installatie via adb: adb shell pm grant app.lightphonekeyboard android.permission.WRITE_SECURE_SETTINGS</string>
+    <string name="setup_color_service">Kleurservice</string>
+    <string name="setup_color_service_sub">Schakel de toegankelijkheidsservice "Type kleurfilter" in. Het houdt alleen in de gaten welke app op de voorgrond staat — het leest nooit scherminhoud.</string>
+    <string name="setup_color_apps">Kleur-apps</string>
+    <string name="setup_color_apps_sub">Apps die altijd in volledige kleur openen. Grijstinten keren terug zodra je ze verlaat.</string>
+    <string name="setup_color_keymap_sub">Geef de huidige app kleur via een hardwaretoets; grijstinten keren terug wanneer je de app verlaat. Inactief op het startscherm. Lang indrukken van de camera houdt kort indrukken voor het openen van de camera.</string>
+    <string name="setup_recents_keymap_sub">Open het systeemoverzicht van recente apps via een hardwaretoets. Inactief op het startscherm. Als het een gebaar deelt met de kleur-keymap, wint kleur.</string>
+    <string name="setup_back_keymap_sub">Activeer de Terug-actie van het systeem via een hardwaretoets. Inactief op het startscherm. Als een gebaar wordt gedeeld, winnen kleur en daarna recent boven terug.</string>
+    <string name="setup_wheel_brightness">Wielhelderheid</string>
+    <string name="setup_wheel_brightness_sub">Binnen apps past het draaien van het zijwiel de schermhelderheid aan (op het startscherm behoudt het zijn standaardgedrag). Vereist "Systeeminstellingen aanpassen", waarvoor toestemming wordt gevraagd wanneer je dit inschakelt.</string>
+    <string name="wheel_toast_no_permission">Sta "Systeeminstellingen aanpassen" toe voor Type om de helderheid te regelen</string>
+    <string name="setup_wheel_back">Wiel lang indrukken gaat terug</string>
+    <string name="setup_wheel_back_sub">Binnen apps houd je het wiel ingedrukt om Terug te activeren. Een korte druk wordt genegeerd. Op het startscherm behoudt de druk zijn standaardgedrag.</string>
+    <string name="setup_key_test">Toetstest</string>
+    <string name="setup_key_test_menu_sub">Zie wat een hardwareknop of het wiel daadwerkelijk verzendt, voor het oplossen van problemen met keymaps.</string>
+    <string name="setup_key_test_sub">Druk op hardwareknoppen of draai aan het wiel. Elke toetsgebeurtenis die de service kan zien verschijnt hieronder, de nieuwste eerst. Als een invoer hier niets laat zien, bereikt deze de service niet en kan deze niet opnieuw worden toegewezen. Vereist dat de kleurservice is ingeschakeld.</string>
+    <string name="key_test_waiting">Wachten op toetsgebeurtenissen…</string>
+    <string name="setup_close_on_lock">Apps sluiten bij vergrendeling</string>
+    <string name="setup_close_on_lock_sub">Wanneer het scherm wordt vergrendeld, sluit dan de apps die sinds de laatste vergrendeling zijn gebruikt. Apps met actieve weergave of gesprekken blijven behouden.</string>
+
+    <string name="color_service_label">Type kleurfilter</string>
+    <string name="color_service_description">Detecteert welke app op de voorgrond staat zodat het grijstintenfilter kan worden gepauzeerd voor je gekozen kleur-apps en daarna kan worden hersteld, en luistert naar de kleur-keymap-toetsen. Het leest geen scherminhoud.</string>
+    <string name="color_toast_gray">Grijstinten aan</string>
+    <string name="color_toast_color">Kleur aan totdat je deze app verlaat</string>
+    <string name="color_toast_no_permission">WRITE_SECURE_SETTINGS ontbreekt — zie Instellingen voor het adb-commando</string>
+
+    <!-- Generieke labels -->
+    <string name="on">Aan</string>
+    <string name="off">Uit</string>
+    <string name="done">Gereed</string>
+
+    <!-- Cycluswaarden -->
+    <string name="haptic_light">Licht</string>
+    <string name="haptic_medium">Gemiddeld</string>
+    <string name="haptic_strong">Sterk</string>
+    <string name="speed_slow">Traag</string>
+    <string name="speed_normal">Normaal</string>
+    <string name="speed_fast">Snel</string>
+    <string name="level_low">Laag</string>
+    <string name="level_high">Hoog</string>
+    <string name="size_compact">Compact</string>
+    <string name="size_tall">Groot</string>
+
+    <!-- Keymap-gebaren -->
+    <string name="keymap_wheel">Wiel lang indrukken</string>
+    <string name="keymap_volume">Volume omhoog + omlaag</string>
+    <string name="keymap_camera">Camera lang indrukken</string>
+
+    <!-- Specifiek voor snelinstellingen -->
+    <string name="haptic_feedback">Haptische feedback</string>
+    <string name="lp_delay">Vertraging bij lang indrukken</string>
+    <string name="cursor_swipe">Cursor-swipe</string>
+    <string name="kb_height">Toetsenbordhoogte</string>
+    <string name="color_toggle">Kleur wisselen</string>
+    <string name="recent_apps">Recente apps</string>
+    <string name="go_back">Ga terug</string>
+    <string name="kb_size">Toetsenbordgrootte</string>
+    <string name="lang_label">Taallabel</string>
+    <string name="all_settings">Alle instellingen  ›</string>
+
+    <!-- Dictaat -->
+    <string name="listening">Aan het luisteren…</string>
+    <string name="tap_done">Tik wanneer gereed</string>
+    <string name="voice_unavailable">Spraak niet beschikbaar</string>
+    <string name="voice_preparing">Spraak voorbereiden…</string>
+
+    <!-- Fouten -->
+    <string name="error_no_dict">Geen woordenboek</string>
+    <string name="error_download_failed">Download mislukt</string>
+    <string name="error_empty_dict">Leeg woordenboek</string>
+</resources>

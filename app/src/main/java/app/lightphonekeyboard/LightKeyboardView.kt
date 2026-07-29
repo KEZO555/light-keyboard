@@ -657,7 +657,7 @@ class LightKeyboardView @JvmOverloads constructor(
         // Wrap the live text so a long phrase stacks into lines instead of running off the screen.
         drawWrappedCentered(canvas, listeningStatus, cx, midY + dpf(22), width - dpf(48), textPaint)
         textPaint.textSize = spf(12)
-        canvas.drawText("Tap when done", cx, height - dpf(18), textPaint)
+        canvas.drawText(context.getString(R.string.tap_done), cx, height - dpf(18), textPaint)
     }
 
     /** Draw [text] centered on ([cx],[centerY]), wrapping at word boundaries to fit [maxWidth]. */
@@ -837,19 +837,23 @@ class LightKeyboardView @JvmOverloads constructor(
 
     /** Label + current-value text for a quick-settings row (value null = a plain centred button). */
     private fun settingLabel(id: String): Pair<String, String?> {
-        fun onOff(b: Boolean) = if (b) "On" else "Off"
+        fun onOff(b: Boolean) = context.getString(if (b) R.string.on else R.string.off)
         return when (id) {
             Key.SET_HAPTIC ->
-                "Haptics" to listOf("Off", "Light", "Medium", "Strong")[Prefs.hapticLevel(context).coerceIn(0, 3)]
-            Key.SET_AUTOCORRECT -> "Autocorrect" to onOff(Prefs.autocorrect(context))
-            Key.SET_GESTURE -> "Glide typing" to onOff(Prefs.gestureTyping(context))
-            Key.SET_AUTOCAP -> "Auto-capitalize" to onOff(Prefs.autoCap(context))
-            Key.SET_LANGIND -> "Language label" to onOff(Prefs.languageIndicator(context))
+                context.getString(R.string.haptic_feedback) to listOf(
+                    R.string.off, R.string.haptic_light, R.string.haptic_medium, R.string.haptic_strong
+                ).map { context.getString(it) }[Prefs.hapticLevel(context).coerceIn(0, 3)]
+            Key.SET_AUTOCORRECT -> context.getString(R.string.setup_autocorrect) to onOff(Prefs.autocorrect(context))
+            Key.SET_GESTURE -> context.getString(R.string.setup_gesture) to onOff(Prefs.gestureTyping(context))
+            Key.SET_AUTOCAP -> context.getString(R.string.setup_auto_cap) to onOff(Prefs.autoCap(context))
+            Key.SET_LANGIND -> context.getString(R.string.lang_label) to onOff(Prefs.languageIndicator(context))
             Key.SET_KBHEIGHT ->
-                "Keyboard size" to listOf("Compact", "Normal", "Tall")[Prefs.keyboardHeight(context).coerceIn(0, 2)]
-            Key.SET_SUGGEST -> "Suggestion bar" to onOff(Prefs.suggestions(context))
-            Key.SET_DONE -> "Done" to null
-            Key.SET_ALL -> "All settings  ›" to null
+                context.getString(R.string.kb_size) to listOf(
+                    R.string.size_compact, R.string.speed_normal, R.string.size_tall
+                ).map { context.getString(it) }[Prefs.keyboardHeight(context).coerceIn(0, 2)]
+            Key.SET_SUGGEST -> context.getString(R.string.setup_suggestions) to onOff(Prefs.suggestions(context))
+            Key.SET_DONE -> context.getString(R.string.done) to null
+            Key.SET_ALL -> context.getString(R.string.all_settings) to null
             else -> "" to null
         }
     }
@@ -1546,7 +1550,7 @@ class LightKeyboardView @JvmOverloads constructor(
     }
 
     /** Enter the voice-dictation listening surface. */
-    fun startListeningUi() { listening = true; listeningStatus = "Listening…"; rebuild() }
+    fun startListeningUi() { listening = true; listeningStatus = context.getString(R.string.listening); rebuild() }
 
     /** Update the listening status / live partial transcription. */
     fun setListeningStatus(text: String) {
