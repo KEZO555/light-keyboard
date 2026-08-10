@@ -13,7 +13,7 @@
     <string name="setup_gesture">Glide-typen</string>
     <string name="setup_gesture_sub">Typ een woord door je vinger over de letters te schuiven zonder deze op te tillen. Tik-typen werkt nog steeds precies hetzelfde als voorheen. Standaard uitgeschakeld.</string>
     <string name="setup_suggestions">Suggestiebalk</string>
-    <string name="setup_suggestions_sub">Toon een balk met tikbare woordanvullingen boven de toetsen terwijl je typt. Standaard uit om het toetsenbord minimaal te houden.</string>
+    <string name="setup_suggestions_sub">Toon een balk met tikbare woordaanvullingen boven de toetsen terwijl je typt. Standaard uit om het toetsenbord minimaal te houden.</string>
     <string name="setup_languages">Talen</string>
     <string name="setup_languages_sub">Kies door welke talen de wereldboltoets wisselt. Elke taal heeft zijn eigen lay-out en accenten bij lang indrukken. Alleen Engels bevat ingebouwde autocorrectie; voor elke andere taal wordt het woordenboek automatisch gedownload wanneer je het inschakelt (werkt daarna offline). Met spraak ingeschakeld kan elke taal (behalve Hebreeuws) ook een offline spraakmodel downloaden.</string>
     <string name="dict_download">Offline autocorrectie downloaden (~0,6 MB)</string>
