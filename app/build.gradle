@@ -11,8 +11,8 @@ android {
         applicationId 'app.lightphonekeyboard'
         minSdk 26
         targetSdk 35
-        versionCode 111
-        versionName '2.5.8'
+        versionCode 112
+        versionName '2.5.9'
         resConfigs "en", "nl"
 
         // Light Phone 3 is arm64 — ship only its native libs (Vosk .so) to keep the APK small.
