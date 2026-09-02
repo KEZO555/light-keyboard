@@ -25,6 +25,11 @@
         android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
 
+    <!-- Notification overlay: draw the card over apps, and wake the screen when a notification arrives.
+         The listener itself is kept alive by the notification-access binding (no foreground service). -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <!-- Package visibility (Android 11+) for speech recognizer components. -->
     <queries>
         <intent>
@@ -153,5 +158,34 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/color_filter_service_config" />
         </service>
+
+        <!-- Notification overlay: read the chosen apps' notifications and show them as a card. -->
+        <service
+            android:name=".NotifyService"
+            android:exported="true"
+            android:label="@string/section_notify"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <activity
+            android:name=".NotifySettingsActivity"
+            android:exported="false"
+            android:label="@string/section_notify"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".NotifyAppsActivity"
+            android:exported="false"
+            android:label="@string/notify_apps"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".NotifyActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:showWhenLocked="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop" />
     </application>
 </manifest>

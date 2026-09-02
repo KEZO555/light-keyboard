@@ -1,0 +1,366 @@
+package app.lightphonekeyboard
+
+import android.app.KeyguardManager
+import android.app.Notification
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.SharedPreferences
+import android.graphics.Color
+import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
+import android.os.Handler
+import android.os.Looper
+import android.os.PowerManager
+import android.provider.Settings
+import android.service.notification.NotificationListenerService
+import android.service.notification.StatusBarNotification
+import android.view.Gravity
+import android.view.MotionEvent
+import android.view.View
+import android.view.WindowManager
+import android.widget.HorizontalScrollView
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.core.app.NotificationCompat
+
+/**
+ * Notification overlay — LightNotifi's behaviour ported into Type (plain Views, no Compose). Listens for
+ * notifications from the apps you choose and shows them as a floating card (or a row of cards) over
+ * whatever's on screen, with tap-to-open, optional swipe-to-dismiss, an auto-dismiss timer, and a
+ * lock-screen view. Settings live in [NotifySettingsActivity]; state is stored in [Prefs].
+ */
+class NotifyService : NotificationListenerService() {
+
+    data class NotifyData(val key: String, val title: String, val text: String, val pkg: String, val intent: PendingIntent?)
+
+    private lateinit var wm: WindowManager
+    private val main = Handler(Looper.getMainLooper())
+    private val notifs = ArrayList<NotifyData>()
+    private var overlay: View? = null
+    private val dismissRunnables = HashMap<String, Runnable>()
+    private var wakeLock: PowerManager.WakeLock? = null
+
+    // Cached settings (kept in sync by [prefsListener]).
+    private var apps: Set<String> = emptySet()
+    private var horizontal = false
+    private var swipe = true
+    private var wake = false
+    private var lock = false
+    private var groups = false
+    private var stay = false
+    private var sync = true
+    private var offsetIdx = 1
+    private var durationIdx = 1
+    private var sizeIdx = 1
+
+    private val density get() = resources.displayMetrics.density
+    private val sizeScale get() = SIZES[sizeIdx.coerceIn(0, SIZES.size - 1)]
+    private val durationMs get() = DURATIONS[durationIdx.coerceIn(0, DURATIONS.size - 1)] * 1000L
+    private val offsetPx get() = (OFFSETS[offsetIdx.coerceIn(0, OFFSETS.size - 1)] * density).toInt()
+
+    private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+        loadCaches()
+        // Position / size affect the live window, so refresh it (and re-lay the cards).
+        overlay?.let { v -> main.post { runCatching { wm.updateViewLayout(v, params()) }; rebuildCards() } }
+    }
+
+    private val screenOn = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == Intent.ACTION_SCREEN_ON && lock && notifs.isNotEmpty() && isLocked()) {
+                startLockScreen()
+            }
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        instance = this
+        wm = getSystemService(WINDOW_SERVICE) as WindowManager
+        loadCaches()
+        Prefs.shared(this).registerOnSharedPreferenceChangeListener(prefsListener)
+        registerReceiver(screenOn, IntentFilter(Intent.ACTION_SCREEN_ON))
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_PREVIEW) {
+            show(NotifyData(PREVIEW_KEY, getString(R.string.notify_preview_title), getString(R.string.notify_preview_text), packageName, null))
+        }
+        return START_STICKY
+    }
+
+    override fun onDestroy() {
+        instance = null
+        runCatching { unregisterReceiver(screenOn) }
+        runCatching { Prefs.shared(this).unregisterOnSharedPreferenceChangeListener(prefsListener) }
+        clearAll()
+        super.onDestroy()
+    }
+
+    private fun loadCaches() {
+        apps = Prefs.notifApps(this)
+        horizontal = Prefs.notifHorizontal(this)
+        swipe = Prefs.notifSwipe(this)
+        wake = Prefs.notifWakeScreen(this)
+        lock = Prefs.notifLockScreen(this)
+        groups = Prefs.notifGroupSummaries(this)
+        stay = Prefs.notifStay(this)
+        sync = Prefs.notifSync(this)
+        offsetIdx = Prefs.notifOffsetIdx(this)
+        durationIdx = Prefs.notifDurationIdx(this)
+        sizeIdx = Prefs.notifSizeIdx(this)
+    }
+
+    // ---------------- notifications ----------------
+
+    override fun onNotificationPosted(sbn: StatusBarNotification?) {
+        val n = sbn ?: return
+        if (n.packageName !in apps) return
+        if (!groups && (n.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0) return
+
+        val extras = n.notification.extras
+        val title = extras.getCharSequence(NotificationCompat.EXTRA_TITLE)?.toString()
+            ?: extras.getCharSequence(NotificationCompat.EXTRA_TITLE_BIG)?.toString()
+            ?: getString(R.string.notify_default_title)
+
+        var text = extras.getCharSequence(NotificationCompat.EXTRA_TEXT)?.toString()
+        runCatching {
+            NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(n.notification)?.let { ms ->
+                ms.messages.lastOrNull()?.let { last ->
+                    val sender = last.person?.name ?: getString(R.string.notify_default_title)
+                    val content = last.text?.toString() ?: ""
+                    val group = ms.conversationTitle
+                    text = if (ms.isGroupConversation && !group.isNullOrEmpty()) "[$group] $sender: $content"
+                    else if (ms.isGroupConversation) "$sender: $content" else content
+                }
+            }
+        }
+        if (text.isNullOrEmpty()) text = extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT)?.toString()
+        if (text.isNullOrEmpty()) extras.getCharSequenceArray(NotificationCompat.EXTRA_TEXT_LINES)?.lastOrNull()?.let { text = it.toString() }
+        if (text.isNullOrEmpty()) text = extras.getCharSequence(NotificationCompat.EXTRA_SUB_TEXT)?.toString()
+        if (text.isNullOrEmpty()) text = n.notification.tickerText?.toString()
+
+        if (title.isBlank() && text.isNullOrEmpty()) return
+        show(NotifyData(n.key, title, text ?: "", n.packageName, n.notification.contentIntent))
+    }
+
+    override fun onNotificationRemoved(sbn: StatusBarNotification?, rankingMap: RankingMap?, reason: Int) {
+        val n = sbn ?: return
+        if (reason == REASON_LISTENER_CANCEL) return
+        val remote = reason == REASON_APP_CANCEL || reason == REASON_APP_CANCEL_ALL
+        if (stay && reason != REASON_CLICK && n.key != PREVIEW_KEY) {
+            if (!sync || !remote) return
+        }
+        main.post { removeByKey(n.key) }
+    }
+
+    private fun show(data: NotifyData) {
+        main.post {
+            if (wake) acquireWake()
+            val idx = notifs.indexOfFirst { it.key == data.key }
+            if (idx >= 0) notifs[idx] = data else notifs.add(data)
+            while (notifs.size > MAX_CARDS) notifs.removeAt(0)
+
+            if (lock && isLocked()) {
+                startLockScreen()
+            } else {
+                if (Settings.canDrawOverlays(this) && overlay == null) addOverlay()
+                overlay?.let { runCatching { wm.updateViewLayout(it, params()) } }
+                rebuildCards()
+            }
+            if (!stay || data.key == PREVIEW_KEY) scheduleDismiss(data.key)
+        }
+    }
+
+    private fun scheduleDismiss(key: String) {
+        dismissRunnables.remove(key)?.let { main.removeCallbacks(it) }
+        val r = Runnable { removeByKey(key) }
+        dismissRunnables[key] = r
+        main.postDelayed(r, if (key == PREVIEW_KEY) maxOf(durationMs, 10_000L) else durationMs)
+    }
+
+    private fun removeByKey(key: String) {
+        notifs.removeAll { it.key == key }
+        dismissRunnables.remove(key)?.let { main.removeCallbacks(it) }
+        if (notifs.isEmpty()) removeOverlay() else rebuildCards()
+    }
+
+    private fun dismissInternal(key: String) {
+        main.post {
+            removeByKey(key)
+            if (key != PREVIEW_KEY) runCatching { cancelNotification(key) }   // clear it from the shade too
+        }
+    }
+
+    private fun openNotification(data: NotifyData) {
+        runCatching {
+            if (data.intent != null) {
+                data.intent.send(this, 0, Intent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            } else {
+                packageManager.getLaunchIntentForPackage(data.pkg)?.let {
+                    startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }
+            }
+        }
+        dismissInternal(data.key)
+    }
+
+    private fun clearAll() { notifs.clear(); removeOverlay() }
+
+    // ---------------- overlay views (plain Views) ----------------
+
+    private fun addOverlay() {
+        val v = if (horizontal) HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false } else LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        runCatching { wm.addView(v, params()); overlay = v }
+    }
+
+    private fun removeOverlay() {
+        overlay?.let { runCatching { wm.removeView(it) } }
+        overlay = null
+    }
+
+    /** Rebuild the card views from [notifs] into the current overlay container. */
+    private fun rebuildCards() {
+        val container: LinearLayout = when (val o = overlay) {
+            is LinearLayout -> o
+            is HorizontalScrollView -> (o.getChildAt(0) as? LinearLayout) ?: LinearLayout(this).also { it.orientation = LinearLayout.HORIZONTAL; o.addView(it) }
+            else -> return
+        }
+        container.removeAllViews()
+        val gap = (12 * sizeScale * density).toInt()
+        val cardW = minOf((340 * sizeScale * density).toInt(),
+            resources.displayMetrics.widthPixels - (32 * density).toInt())
+        for ((i, data) in notifs.withIndex()) {
+            val card = buildCard(data)
+            val lp = LinearLayout.LayoutParams(cardW, WindowManager.LayoutParams.WRAP_CONTENT)
+            if (i > 0) { if (horizontal) lp.leftMargin = gap else lp.topMargin = gap }
+            container.addView(card, lp)
+        }
+    }
+
+    private fun buildCard(data: NotifyData): View {
+        val pad = (12 * sizeScale * density).toInt()
+        val bg = GradientDrawable().apply { setColor(Color.BLACK); cornerRadius = 24 * sizeScale * density }
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = bg
+            setPadding(pad, pad, pad, pad)
+        }
+        val icon = ImageView(this).apply {
+            setImageResource(R.drawable.ic_notify)
+            setColorFilter(Color.WHITE)
+            val s = (30 * sizeScale * density).toInt()
+            layoutParams = LinearLayout.LayoutParams(s, s).apply { rightMargin = (12 * sizeScale * density).toInt() }
+        }
+        val col = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, WindowManager.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        col.addView(TextView(this).apply {
+            text = data.title; setTextColor(Color.WHITE); textSize = 16f * sizeScale
+            maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END
+        })
+        if (data.text.isNotEmpty()) col.addView(TextView(this).apply {
+            text = data.text; setTextColor(Color.argb(210, 255, 255, 255)); textSize = 15f * sizeScale
+            maxLines = 2; ellipsize = android.text.TextUtils.TruncateAt.END
+        })
+        row.addView(icon); row.addView(col)
+        row.setOnClickListener { openNotification(data) }
+        if (swipe) attachSwipe(row, data)
+        return row
+    }
+
+    /** Swipe a card up (or sideways) past a threshold to dismiss it; otherwise it springs back. */
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
+    private fun attachSwipe(card: View, data: NotifyData) {
+        var downX = 0f; var downY = 0f; var dragging = false
+        val slop = 8 * density
+        val threshold = 60 * density
+        card.setOnTouchListener { v, e ->
+            when (e.actionMasked) {
+                MotionEvent.ACTION_DOWN -> { downX = e.rawX; downY = e.rawY; dragging = false; false }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = e.rawX - downX; val dy = e.rawY - downY
+                    if (!dragging && (kotlin.math.abs(dx) > slop || kotlin.math.abs(dy) > slop)) dragging = true
+                    if (dragging) {
+                        if (horizontal) { v.translationX = dx; v.alpha = 1f - (kotlin.math.abs(dx) / (threshold * 3)).coerceIn(0f, 0.6f) }
+                        else { v.translationY = minOf(dy, 0f); v.alpha = 1f - (kotlin.math.abs(minOf(dy, 0f)) / (threshold * 3)).coerceIn(0f, 0.6f) }
+                    }
+                    dragging
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    val gone = if (horizontal) kotlin.math.abs(e.rawX - downX) > threshold else (downY - e.rawY) > threshold
+                    if (dragging && gone) dismissInternal(data.key)
+                    else { v.animate().translationX(0f).translationY(0f).alpha(1f).setDuration(120).start() }
+                    dragging   // consume only if it was a drag; a tap falls through to the click listener
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun params(): WindowManager.LayoutParams {
+        var flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        if (lock) flags = flags or WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+        return WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, flags, PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            y = offsetPx
+            windowAnimations = android.R.style.Animation_Toast
+        }
+    }
+
+    // ---------------- misc ----------------
+
+    private fun isLocked(): Boolean =
+        (getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager).isKeyguardLocked
+
+    private fun startLockScreen() {
+        runCatching {
+            startActivity(Intent(this, NotifyActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun acquireWake() {
+        runCatching {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (wakeLock == null) wakeLock = pm.newWakeLock(
+                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP, "LightKeyboard:Notify")
+            wakeLock?.let { if (it.isHeld) it.release(); it.acquire(3000) }
+        }
+    }
+
+    /** Snapshot for the lock-screen activity. */
+    fun current(): List<NotifyData> = ArrayList(notifs)
+
+    companion object {
+        const val ACTION_PREVIEW = "app.lightphonekeyboard.NOTIFY_PREVIEW"
+        private const val PREVIEW_KEY = "__preview__"
+        private const val MAX_CARDS = 10
+        val DURATIONS = intArrayOf(3, 5, 8, 15)          // seconds, by notifDurationIdx
+        val OFFSETS = intArrayOf(30, 55, 90)             // dp from the top, by notifOffsetIdx
+        val SIZES = floatArrayOf(0.85f, 1.0f, 1.2f)      // card scale, by notifSizeIdx
+
+        @Volatile var instance: NotifyService? = null; private set
+
+        fun dismiss(key: String) { instance?.dismissInternal(key) }
+        fun open(data: NotifyData) { instance?.openNotification(data) }
+
+        /** Is Type's notification-listener actually enabled in system settings? */
+        fun isEnabled(context: Context): Boolean {
+            val flat = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners") ?: return false
+            return flat.split(":").any { it.contains(context.packageName) }
+        }
+    }
+}

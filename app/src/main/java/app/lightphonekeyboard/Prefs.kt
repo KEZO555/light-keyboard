@@ -34,6 +34,17 @@ object Prefs {
     private const val KEY_CLOSE_ON_LOCK = "close_apps_on_lock"
     private const val KEY_WHEEL_BRIGHTNESS = "wheel_brightness"
     private const val KEY_WHEEL_PRESS_BACK = "wheel_press_back"
+    private const val KEY_NOTIF_APPS = "notif_apps"
+    private const val KEY_NOTIF_HORIZONTAL = "notif_horizontal"
+    private const val KEY_NOTIF_SWIPE = "notif_swipe"
+    private const val KEY_NOTIF_WAKE = "notif_wake_screen"
+    private const val KEY_NOTIF_LOCK = "notif_lock_screen"
+    private const val KEY_NOTIF_GROUP = "notif_group_summaries"
+    private const val KEY_NOTIF_STAY = "notif_stay_until_dismissed"
+    private const val KEY_NOTIF_SYNC = "notif_sync_dismissed"
+    private const val KEY_NOTIF_OFFSET = "notif_offset_idx"
+    private const val KEY_NOTIF_DURATION = "notif_duration_idx"
+    private const val KEY_NOTIF_SIZE = "notif_size_idx"
 
     /** Haptic strength levels. */
     const val HAPTIC_OFF = 0
@@ -55,6 +66,37 @@ object Prefs {
     const val LEVEL_HIGH = 2
 
     private fun prefs(c: Context) = c.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+
+    /** The raw store — so a long-running service can register a change listener and react live. */
+    fun shared(c: Context) = prefs(c)
+
+    // --- Notifications (LightNotifi port; used by NotifyService / NotifySettingsActivity) ---
+    fun notifApps(c: Context): Set<String> = prefs(c).getStringSet(KEY_NOTIF_APPS, emptySet()) ?: emptySet()
+    fun setNotifApps(c: Context, v: Set<String>) = prefs(c).edit().putStringSet(KEY_NOTIF_APPS, v).apply()
+    fun notifHorizontal(c: Context) = prefs(c).getBoolean(KEY_NOTIF_HORIZONTAL, false)
+    fun setNotifHorizontal(c: Context, v: Boolean) = prefs(c).edit().putBoolean(KEY_NOTIF_HORIZONTAL, v).apply()
+    fun notifSwipe(c: Context) = prefs(c).getBoolean(KEY_NOTIF_SWIPE, true)
+    fun setNotifSwipe(c: Context, v: Boolean) = prefs(c).edit().putBoolean(KEY_NOTIF_SWIPE, v).apply()
+    fun notifWakeScreen(c: Context) = prefs(c).getBoolean(KEY_NOTIF_WAKE, false)
+    fun setNotifWakeScreen(c: Context, v: Boolean) = prefs(c).edit().putBoolean(KEY_NOTIF_WAKE, v).apply()
+    fun notifLockScreen(c: Context) = prefs(c).getBoolean(KEY_NOTIF_LOCK, false)
+    fun setNotifLockScreen(c: Context, v: Boolean) = prefs(c).edit().putBoolean(KEY_NOTIF_LOCK, v).apply()
+    fun notifGroupSummaries(c: Context) = prefs(c).getBoolean(KEY_NOTIF_GROUP, false)
+    fun setNotifGroupSummaries(c: Context, v: Boolean) = prefs(c).edit().putBoolean(KEY_NOTIF_GROUP, v).apply()
+    fun notifStay(c: Context) = prefs(c).getBoolean(KEY_NOTIF_STAY, false)
+    fun setNotifStay(c: Context, v: Boolean) = prefs(c).edit().putBoolean(KEY_NOTIF_STAY, v).apply()
+    fun notifSync(c: Context) = prefs(c).getBoolean(KEY_NOTIF_SYNC, true)
+    fun setNotifSync(c: Context, v: Boolean) = prefs(c).edit().putBoolean(KEY_NOTIF_SYNC, v).apply()
+    fun notifOffsetIdx(c: Context) = prefs(c).getInt(KEY_NOTIF_OFFSET, 1)     // 0 low / 1 mid / 2 high
+    fun setNotifOffsetIdx(c: Context, v: Int) = prefs(c).edit().putInt(KEY_NOTIF_OFFSET, v).apply()
+    fun notifDurationIdx(c: Context) = prefs(c).getInt(KEY_NOTIF_DURATION, 1) // 0 3s / 1 5s / 2 8s / 3 15s
+    fun setNotifDurationIdx(c: Context, v: Int) = prefs(c).edit().putInt(KEY_NOTIF_DURATION, v).apply()
+    fun notifSizeIdx(c: Context) = prefs(c).getInt(KEY_NOTIF_SIZE, 1)         // 0 small / 1 medium / 2 large
+    fun setNotifSizeIdx(c: Context, v: Int) = prefs(c).edit().putInt(KEY_NOTIF_SIZE, v).apply()
+
+    /** Keys the NotifyService watches for live changes. */
+    const val KEY_NOTIF_OFFSET_PUB = KEY_NOTIF_OFFSET
+    const val KEY_NOTIF_SIZE_PUB = KEY_NOTIF_SIZE
 
     /** Word-level autocorrect using the device's spell checker. On by default. */
     fun autocorrect(c: Context): Boolean = prefs(c).getBoolean(KEY_AUTOCORRECT, true)
