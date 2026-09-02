@@ -40,8 +40,6 @@ class NotifySettingsActivity : SettingsScreen() {
 
             toggleItem(c, R.string.notify_swipe, R.string.notify_swipe_sub,
                 { Prefs.notifSwipe(this) }, { Prefs.setNotifSwipe(this, it) })
-            toggleItem(c, R.string.notify_horizontal, R.string.notify_horizontal_sub,
-                { Prefs.notifHorizontal(this) }, { Prefs.setNotifHorizontal(this, it) })
             toggleItem(c, R.string.notify_wake, R.string.notify_wake_sub,
                 { Prefs.notifWakeScreen(this) }, { Prefs.setNotifWakeScreen(this, it) })
             toggleItem(c, R.string.notify_lock, R.string.notify_lock_sub,
@@ -59,9 +57,12 @@ class NotifySettingsActivity : SettingsScreen() {
             cycleItem(c, getString(R.string.notify_size), R.string.notify_size_sub,
                 listOf(getString(R.string.small), getString(R.string.medium), getString(R.string.large)),
                 { Prefs.notifSizeIdx(this) }, { Prefs.setNotifSizeIdx(this, it) })
+            // Distance from the top of the screen, in dp (default 28). Cycles through a handful of steps.
+            val posDp = listOf(0, 14, 28, 42, 56, 72, 90)
             cycleItem(c, getString(R.string.notify_position), R.string.notify_position_sub,
-                listOf(getString(R.string.notify_pos_low), getString(R.string.notify_pos_mid), getString(R.string.notify_pos_high)),
-                { Prefs.notifOffsetIdx(this) }, { Prefs.setNotifOffsetIdx(this, it) })
+                posDp.map { "$it dp" },
+                { posDp.indexOf(Prefs.notifOffsetDp(this)).let { if (it < 0) posDp.indexOf(28) else it } },
+                { Prefs.setNotifOffsetDp(this, posDp[it]) })
         })
     }
 }
