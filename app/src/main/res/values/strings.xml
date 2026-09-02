@@ -60,6 +60,16 @@
     <string name="section_keys_sub">Haptics, sound, key timing, cursor swipe, keyboard size.</string>
     <string name="section_color">Key shortcuts &amp; more</string>
     <string name="section_color_sub">Colour apps, hardware keymaps, wheel brightness and close-on-lock.</string>
+    <string name="section_pdf">PDF</string>
+    <string name="section_pdf_sub">Open and read PDF files.</string>
+    <string name="pdf_open_document">Open a PDF</string>
+    <string name="pdf_invert">Invert</string>
+    <string name="pdf_flow">Flow</string>
+    <string name="pdf_save_copy">Save</string>
+    <string name="pdf_share">Share</string>
+    <string name="pdf_open_failed">Couldn\'t open that PDF.</string>
+    <string name="pdf_saved">Saved a copy.</string>
+    <string name="pdf_save_failed">Couldn\'t save the copy.</string>
     <string name="setup_languages_menu_sub">Choose your languages and download their dictionaries and voice models.</string>
 
     <!-- Colour filter (grayscale) settings -->
