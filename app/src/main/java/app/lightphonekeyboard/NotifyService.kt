@@ -1,5 +1,6 @@
 package app.lightphonekeyboard
 
+import android.app.ActivityOptions
 import android.app.KeyguardManager
 import android.app.Notification
 import android.app.PendingIntent
@@ -11,6 +12,7 @@ import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
@@ -21,11 +23,11 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
+import kotlin.math.abs
 
 /**
  * Notification overlay — LightNotifi's behaviour ported into Type (plain Views, no Compose). Listens for
@@ -40,32 +42,34 @@ class NotifyService : NotificationListenerService() {
     private lateinit var wm: WindowManager
     private val main = Handler(Looper.getMainLooper())
     private val notifs = ArrayList<NotifyData>()
-    private var overlay: View? = null
+    private var overlay: LinearLayout? = null       // [ card holder ] over [ page dots ]
+    private var cardHolder: LinearLayout? = null
+    private var dotsRow: LinearLayout? = null
+    private var currentIndex = 0                     // which notification the pager is showing
     private val dismissRunnables = HashMap<String, Runnable>()
     private var wakeLock: PowerManager.WakeLock? = null
 
     // Cached settings (kept in sync by [prefsListener]).
     private var apps: Set<String> = emptySet()
-    private var horizontal = false
     private var swipe = true
     private var wake = false
     private var lock = false
     private var groups = false
     private var stay = false
     private var sync = true
-    private var offsetIdx = 1
+    private var offsetDp = 28
     private var durationIdx = 1
     private var sizeIdx = 1
 
     private val density get() = resources.displayMetrics.density
     private val sizeScale get() = SIZES[sizeIdx.coerceIn(0, SIZES.size - 1)]
     private val durationMs get() = DURATIONS[durationIdx.coerceIn(0, DURATIONS.size - 1)] * 1000L
-    private val offsetPx get() = (OFFSETS[offsetIdx.coerceIn(0, OFFSETS.size - 1)] * density).toInt()
+    private val offsetPx get() = (offsetDp * density).toInt()
 
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
         loadCaches()
         // Position / size affect the live window, so refresh it (and re-lay the cards).
-        overlay?.let { v -> main.post { runCatching { wm.updateViewLayout(v, params()) }; rebuildCards() } }
+        overlay?.let { v -> main.post { runCatching { wm.updateViewLayout(v, params()) }; renderCurrent() } }
     }
 
     private val screenOn = object : BroadcastReceiver() {
@@ -102,14 +106,13 @@ class NotifyService : NotificationListenerService() {
 
     private fun loadCaches() {
         apps = Prefs.notifApps(this)
-        horizontal = Prefs.notifHorizontal(this)
         swipe = Prefs.notifSwipe(this)
         wake = Prefs.notifWakeScreen(this)
         lock = Prefs.notifLockScreen(this)
         groups = Prefs.notifGroupSummaries(this)
         stay = Prefs.notifStay(this)
         sync = Prefs.notifSync(this)
-        offsetIdx = Prefs.notifOffsetIdx(this)
+        offsetDp = Prefs.notifOffsetDp(this)
         durationIdx = Prefs.notifDurationIdx(this)
         sizeIdx = Prefs.notifSizeIdx(this)
     }
@@ -163,13 +166,14 @@ class NotifyService : NotificationListenerService() {
             val idx = notifs.indexOfFirst { it.key == data.key }
             if (idx >= 0) notifs[idx] = data else notifs.add(data)
             while (notifs.size > MAX_CARDS) notifs.removeAt(0)
+            currentIndex = notifs.size - 1                 // page to the newest notification
 
             if (lock && isLocked()) {
                 startLockScreen()
             } else {
                 if (Settings.canDrawOverlays(this) && overlay == null) addOverlay()
                 overlay?.let { runCatching { wm.updateViewLayout(it, params()) } }
-                rebuildCards()
+                renderCurrent()
             }
             if (!stay || data.key == PREVIEW_KEY) scheduleDismiss(data.key)
         }
@@ -185,7 +189,8 @@ class NotifyService : NotificationListenerService() {
     private fun removeByKey(key: String) {
         notifs.removeAll { it.key == key }
         dismissRunnables.remove(key)?.let { main.removeCallbacks(it) }
-        if (notifs.isEmpty()) removeOverlay() else rebuildCards()
+        if (notifs.isEmpty()) removeOverlay()
+        else { currentIndex = currentIndex.coerceIn(0, notifs.size - 1); renderCurrent() }
     }
 
     private fun dismissInternal(key: String) {
@@ -196,12 +201,21 @@ class NotifyService : NotificationListenerService() {
     }
 
     private fun openNotification(data: NotifyData) {
+        // Android 14+ blocks activity launches from a background service unless we opt in via BAL.
+        val opts = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            ActivityOptions.makeBasic()
+                .setPendingIntentBackgroundActivityStartMode(ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED)
+                .toBundle()
+        } else null
         runCatching {
             if (data.intent != null) {
-                data.intent.send(this, 0, Intent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                val fill = Intent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                // The Bundle-options overload only exists on API 34+, so only call it when we built opts.
+                if (opts != null) data.intent.send(this, 0, fill, null, null, null, opts)
+                else data.intent.send(this, 0, fill)
             } else {
                 packageManager.getLaunchIntentForPackage(data.pkg)?.let {
-                    startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), opts)
                 }
             }
         }
@@ -211,33 +225,56 @@ class NotifyService : NotificationListenerService() {
     private fun clearAll() { notifs.clear(); removeOverlay() }
 
     // ---------------- overlay views (plain Views) ----------------
+    // One card at a time: tap to open, swipe up to dismiss, swipe left/right to page between
+    // notifications. A row of dots under the card marks how many there are and which is showing.
 
     private fun addOverlay() {
-        val v = if (horizontal) HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false } else LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        runCatching { wm.addView(v, params()); overlay = v }
+        val holder = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val dots = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_HORIZONTAL }
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            addView(holder)
+            addView(dots)
+        }
+        runCatching { wm.addView(root, params()); overlay = root; cardHolder = holder; dotsRow = dots }
     }
 
     private fun removeOverlay() {
         overlay?.let { runCatching { wm.removeView(it) } }
-        overlay = null
+        overlay = null; cardHolder = null; dotsRow = null
     }
 
-    /** Rebuild the card views from [notifs] into the current overlay container. */
-    private fun rebuildCards() {
-        val container: LinearLayout = when (val o = overlay) {
-            is LinearLayout -> o
-            is HorizontalScrollView -> (o.getChildAt(0) as? LinearLayout) ?: LinearLayout(this).also { it.orientation = LinearLayout.HORIZONTAL; o.addView(it) }
-            else -> return
-        }
-        container.removeAllViews()
-        val gap = (12 * sizeScale * density).toInt()
+    /** Show the notification at [currentIndex] in the card holder, and refresh the page dots. */
+    private fun renderCurrent() {
+        val holder = cardHolder ?: return
+        holder.removeAllViews()
+        if (notifs.isEmpty()) { removeOverlay(); return }
+        currentIndex = currentIndex.coerceIn(0, notifs.size - 1)
         val cardW = minOf((340 * sizeScale * density).toInt(),
             resources.displayMetrics.widthPixels - (32 * density).toInt())
-        for ((i, data) in notifs.withIndex()) {
-            val card = buildCard(data)
-            val lp = LinearLayout.LayoutParams(cardW, WindowManager.LayoutParams.WRAP_CONTENT)
-            if (i > 0) { if (horizontal) lp.leftMargin = gap else lp.topMargin = gap }
-            container.addView(card, lp)
+        holder.addView(buildCard(notifs[currentIndex]),
+            LinearLayout.LayoutParams(cardW, WindowManager.LayoutParams.WRAP_CONTENT))
+        renderDots()
+    }
+
+    /** A dot per notification; the current one is solid white, the rest are dim. Hidden for a single card. */
+    private fun renderDots() {
+        val row = dotsRow ?: return
+        row.removeAllViews()
+        if (notifs.size <= 1) return
+        val s = (6 * density).toInt()
+        val gap = (4 * density).toInt()
+        for (i in notifs.indices) {
+            val dot = View(this).apply {
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(if (i == currentIndex) Color.WHITE else Color.argb(90, 255, 255, 255))
+                }
+            }
+            row.addView(dot, LinearLayout.LayoutParams(s, s).apply {
+                leftMargin = gap; rightMargin = gap; topMargin = (8 * density).toInt()
+            })
         }
     }
 
@@ -269,39 +306,52 @@ class NotifyService : NotificationListenerService() {
             maxLines = 2; ellipsize = android.text.TextUtils.TruncateAt.END
         })
         row.addView(icon); row.addView(col)
-        row.setOnClickListener { openNotification(data) }
-        if (swipe) attachSwipe(row, data)
+        attachGestures(row)
         return row
     }
 
-    /** Swipe a card up (or sideways) past a threshold to dismiss it; otherwise it springs back. */
+    /**
+     * One unified touch handler for the card: a tap (no real movement) opens the notification, a swipe up
+     * past the threshold dismisses it (when swipe-to-dismiss is on), and a horizontal swipe pages to the
+     * next / previous notification. Anything short of a threshold springs back.
+     */
     @android.annotation.SuppressLint("ClickableViewAccessibility")
-    private fun attachSwipe(card: View, data: NotifyData) {
-        var downX = 0f; var downY = 0f; var dragging = false
+    private fun attachGestures(card: View) {
+        var downX = 0f; var downY = 0f; var dragged = false; var axisX = false
         val slop = 8 * density
         val threshold = 60 * density
         card.setOnTouchListener { v, e ->
             when (e.actionMasked) {
-                MotionEvent.ACTION_DOWN -> { downX = e.rawX; downY = e.rawY; dragging = false; false }
+                MotionEvent.ACTION_DOWN -> { downX = e.rawX; downY = e.rawY; dragged = false; axisX = false; true }
                 MotionEvent.ACTION_MOVE -> {
                     val dx = e.rawX - downX; val dy = e.rawY - downY
-                    if (!dragging && (kotlin.math.abs(dx) > slop || kotlin.math.abs(dy) > slop)) dragging = true
-                    if (dragging) {
-                        if (horizontal) { v.translationX = dx; v.alpha = 1f - (kotlin.math.abs(dx) / (threshold * 3)).coerceIn(0f, 0.6f) }
-                        else { v.translationY = minOf(dy, 0f); v.alpha = 1f - (kotlin.math.abs(minOf(dy, 0f)) / (threshold * 3)).coerceIn(0f, 0.6f) }
+                    if (!dragged && (abs(dx) > slop || abs(dy) > slop)) { dragged = true; axisX = abs(dx) > abs(dy) }
+                    if (dragged) {
+                        if (axisX) { v.translationX = dx; v.alpha = 1f - (abs(dx) / (threshold * 3)).coerceIn(0f, 0.6f) }
+                        else { v.translationY = minOf(dy, 0f); v.alpha = 1f - (abs(minOf(dy, 0f)) / (threshold * 3)).coerceIn(0f, 0.6f) }
                     }
-                    dragging
+                    true
                 }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    val gone = if (horizontal) kotlin.math.abs(e.rawX - downX) > threshold else (downY - e.rawY) > threshold
-                    if (dragging && gone) dismissInternal(data.key)
-                    else { v.animate().translationX(0f).translationY(0f).alpha(1f).setDuration(120).start() }
-                    dragging   // consume only if it was a drag; a tap falls through to the click listener
+                MotionEvent.ACTION_UP -> {
+                    val dx = e.rawX - downX; val dy = e.rawY - downY
+                    when {
+                        !dragged -> openCurrent()
+                        !axisX && swipe && -dy > threshold -> dismissCurrent()
+                        axisX && abs(dx) > threshold -> page(if (dx < 0) 1 else -1)
+                        else -> settle(v)
+                    }
+                    true
                 }
+                MotionEvent.ACTION_CANCEL -> { settle(v); true }
                 else -> false
             }
         }
     }
+
+    private fun openCurrent() { notifs.getOrNull(currentIndex)?.let { openNotification(it) } }
+    private fun dismissCurrent() { notifs.getOrNull(currentIndex)?.let { dismissInternal(it.key) } }
+    private fun page(delta: Int) { currentIndex = (currentIndex + delta).coerceIn(0, notifs.size - 1); renderCurrent() }
+    private fun settle(v: View) { v.animate().translationX(0f).translationY(0f).alpha(1f).setDuration(120).start() }
 
     private fun params(): WindowManager.LayoutParams {
         var flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -349,7 +399,6 @@ class NotifyService : NotificationListenerService() {
         private const val PREVIEW_KEY = "__preview__"
         private const val MAX_CARDS = 10
         val DURATIONS = intArrayOf(3, 5, 8, 15)          // seconds, by notifDurationIdx
-        val OFFSETS = intArrayOf(30, 55, 90)             // dp from the top, by notifOffsetIdx
         val SIZES = floatArrayOf(0.85f, 1.0f, 1.2f)      // card scale, by notifSizeIdx
 
         @Volatile var instance: NotifyService? = null; private set
