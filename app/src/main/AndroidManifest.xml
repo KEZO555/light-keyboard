@@ -109,6 +109,23 @@
             android:label="@string/section_color"
             android:screenOrientation="portrait" />
 
+        <!-- PDF viewer: opened from the menu, or by tapping a PDF anywhere (VIEW intent). -->
+        <activity
+            android:name=".PdfViewerActivity"
+            android:exported="true"
+            android:label="@string/section_pdf"
+            android:screenOrientation="portrait"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/pdf" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".KeyTestActivity"
             android:exported="false"

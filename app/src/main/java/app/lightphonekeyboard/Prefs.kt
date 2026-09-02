@@ -7,6 +7,8 @@ object Prefs {
     private const val FILE = "light_keyboard_prefs"
     private const val KEY_AUTOCORRECT = "autocorrect"
     private const val KEY_GESTURE = "gesture_typing"
+    private const val KEY_PDF_DARK = "pdf_dark_mode"
+    private const val KEY_PDF_CONTINUOUS = "pdf_continuous"
     private const val KEY_SUGGESTIONS = "suggestion_bar"
     private const val KEY_VOICE = "voice_enabled"
     private const val KEY_NUMBER_ROW = "number_row"
@@ -65,6 +67,12 @@ object Prefs {
 
     fun setGestureTyping(c: Context, value: Boolean) =
         prefs(c).edit().putBoolean(KEY_GESTURE, value).apply()
+
+    /** PDF viewer: invert page colours (dark mode) and continuous (vs paged) layout. */
+    fun pdfDarkMode(c: Context): Boolean = prefs(c).getBoolean(KEY_PDF_DARK, false)
+    fun setPdfDarkMode(c: Context, value: Boolean) = prefs(c).edit().putBoolean(KEY_PDF_DARK, value).apply()
+    fun pdfContinuous(c: Context): Boolean = prefs(c).getBoolean(KEY_PDF_CONTINUOUS, false)
+    fun setPdfContinuous(c: Context, value: Boolean) = prefs(c).edit().putBoolean(KEY_PDF_CONTINUOUS, value).apply()
 
     /** Suggestion bar: a strip of tap-able word completions above the keys. Off by default (keeps the
      *  default keyboard minimal). */
